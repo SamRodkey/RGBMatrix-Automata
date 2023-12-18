@@ -27,6 +27,26 @@ Adafruit_Protomatter matrix(
   WIDTH, 4, 1, rgbPins, NUM_ADDR_PINS, addrPins,
   clockPin, latchPin, oePin, true);
 
+uint16_t colors[8];
+
+// Function to initialize the colors array with rainbow colors
+void init_colors() {
+    colors[0] = matrix.color565(64, 64, 64);   // Dark Gray
+    colors[1] = matrix.color565(120, 79, 23);  // Brown
+    colors[2] = matrix.color565(228, 3, 3);    // Red
+    colors[3] = matrix.color565(255, 140, 0);  // Orange
+    colors[4] = matrix.color565(255, 237, 0);  // Yellow
+    colors[5] = matrix.color565(0, 128, 38);   // Green
+    colors[6] = matrix.color565(0, 77, 255);   // Blue
+    colors[7] = matrix.color565(117, 7, 135);  // Purple
+}
+
+// Function to get a random color from the colors array
+uint16_t get_random_color() {
+    int randomIndex = rand() % 8; // Random index between 0 and 7
+    return colors[randomIndex];
+}
+
 // Initialize all elements of bitmap to black
 void init_bitmap() {
     TRUE_COLOR = matrix.color565(0, 128, 38);
@@ -88,7 +108,7 @@ uint16_t rule_73(uint16_t p, uint16_t q, uint16_t r) {
 }
 
 // Array of rule functions
-uint16_t (*rules[])(uint16_t, uint16_t, uint16_t) = {rule_105, rule_225, rule_73};
+uint16_t (*rules[])(uint16_t, uint16_t, uint16_t) = {rule_22, rule_30, rule_110, rule_45, rule_60, rule_105, rule_225, rule_73};
 
 // Apply a rule to the last row of automata_state, and update bitmap
 void applyRuleToRowPeriodicBC(RuleFunction rule) {
@@ -97,7 +117,7 @@ void applyRuleToRowPeriodicBC(RuleFunction rule) {
         uint16_t left = (x + WIDTH - 1) % WIDTH;
         uint16_t right = (x + 1) % WIDTH;
         automata_state[y][x] = rule(automata_state[y - 1][left], automata_state[y - 1][x], automata_state[y - 1][right]);
-        bitmap[y][x] = automata_state[y][x] ? TRUE_COLOR : FALSE_COLOR;
+        bitmap[y][x] = automata_state[y][x] ? get_random_color() : FALSE_COLOR;
     }
 }
 
@@ -124,16 +144,22 @@ void init_automata_pixel() {
 void setup(void) {
   Serial.begin(115200);
   ProtomatterStatus status = matrix.begin();
-  init_bitmap();
-  init_automata_pixel();
-  apply_bitmap();
-  matrix.show();
+  init_colors();
 }
 
 void loop() {
-  scroll_up();
-  applyRuleToRowPeriodicBC(rules[0]);
-  apply_bitmap();
-  matrix.show();
-  delay(10000);
+    for (int r = 0; r < 3; r++) {
+      init_bitmap();
+      init_automata_pixel();
+      apply_bitmap();
+      matrix.show();
+      for (int x = 0; x < 64; x++) {
+        scroll_up();
+        applyRuleToRowPeriodicBC(rules[r]);
+        apply_bitmap();
+        matrix.show();
+        delay(10);
+      }
+      delay(2000);
+    }
 }
